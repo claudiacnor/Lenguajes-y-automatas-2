@@ -1,0 +1,190 @@
+options {
+	LOOKAHEAD = 2;
+	FORCE_LA_CHECK = true;
+}
+
+PARSER_BEGIN(Proyecto)
+import java.util.*;
+	public class Proyecto{
+		static String tipoDeDato = "";
+		//Clase para guardar los identificadores
+		static class Identificador{
+			String name;
+			String type;
+			String description;
+			String tipoDeDato;
+
+			public Identificador(String name, String type, String tipoDeDato, String description){
+				this.name = name;
+				this.type = type;
+				this.description = description;
+				this.tipoDeDato = tipoDeDato;
+			}
+
+			public Identificador(String name, String description){
+				this.name = name;
+				type = "";
+				this.description = description;
+				tipoDeDato = "";
+			}
+
+			public String toString(){
+				return String.format("%-10s %-10s %-10s %-10s", tipoDeDato,name,type ,description);
+			}
+		}
+		//Variable para guardar los errores
+		static String errores = "";
+		//Estructura para guardar los simbolos
+		static ArrayList <Identificador> simbolos = new ArrayList <Identificador>();
+
+		public static void main(String args[]) throws ParseException {
+			Proyecto miParser = new Proyecto(System.in);
+			System.out.println("\n");
+			miParser.inicio();
+
+			if(errores.equals("")){
+				System.out.println("El codigo se acepta");
+			}else{
+				System.out.println("El codigo no se acepta \n");
+				System.out.println(":::Errores:::");
+				System.out.println(errores);
+			}
+
+			System.out.println("\nIdentificadores::");
+			for(Identificador i : simbolos){
+				System.out.println(i.toString());
+			}
+
+		}
+	}
+PARSER_END(Proyecto)
+
+SKIP: {
+    " "  
+ |  "\t"
+ |  "\n"
+ |  "\r"
+}
+
+//Palabras reservadas
+TOKEN: {
+		<class_declaration: "class">
+	|	<modifier: "public" | "private">			
+	| 	<type_specifier: "boolean" | "int" >
+	| 	<boolean_literal: "true" | "false">
+	|	<if_declaration: "if">
+}
+
+TOKEN : {
+		<corchetes_abren: "{">
+	|	<corchetes_cierran: "}">
+	|	<parentesis_abren: "(">
+	|	<parentesis_cierran: ")">
+	|	<puntoYComa: ";">
+	|	<asignador: "=">
+	| 	<integer_literal: (["1"-"9"] (["0"-"9"])*) | "0">
+	|	<identifier: ( ["a"-"z","A"-"Z","_"] )+>
+
+}
+//palabras que se usan en expresiones
+TOKEN: {
+	<operador_relacional: ">" | "<" | ">=" | "<=" | "==" | "!=">
+|   <operador_aritmetico: "+" | "-" >
+}
+
+//Aqui se inicia la grámatica
+void inicio(): {} {
+	class_declaration() 
+}
+
+void class_declaration(): {} {
+	try{
+
+		(<modifier>)? <class_declaration> identificadorClase() <corchetes_abren>
+			field_declaration() statement()
+		<corchetes_cierran>
+		<EOF>
+		
+	}catch(ParseException e){
+	    errores += "Error Lexico:\n"+e.getMessage()+"\n";
+
+	}catch(TokenMgrError e){
+		errores += "Error Sintactico:\n"+e.getMessage()+"\n";
+	}
+}
+
+void field_declaration(): {} {
+	variable_declaration()	
+}	
+
+void variable_declaration(): {} {
+
+		(<modifier>)? tipoDeDato = type_specifier() variable_declarator()  <puntoYComa>{
+
+		}
+}
+
+void variable_declarator(): 
+{
+	String identificador;
+	String tipo;
+	Identificador i;
+} 
+
+{
+	identificador=identificadorVariable() <asignador> tipo=type()
+	{
+		i = new Identificador(identificador, tipo, tipoDeDato, "variable_declaration");
+		simbolos.add(i);
+	} 
+}
+
+String identificadorVariable():{} {
+	<identifier> {
+		return token.image;
+	}
+}
+
+void identificadorClase():{}{
+	
+	<identifier> {
+		simbolos.add(new Identificador(token.image,"class_declaration"));
+	}
+}
+
+String type(): {} {
+
+	(<integer_literal> | <boolean_literal>){
+		return token.image;
+	}
+
+}
+String type_specifier():{}{
+	<type_specifier>{
+		return token.image;
+	}
+}
+
+void expression(): {} {
+
+	testing_expresion()	
+}
+
+void statement(): {} {
+
+if_statement() 
+}
+
+void if_statement(): {} {
+
+	<if_declaration> <parentesis_abren> testing_expresion() <parentesis_cierran> aritmetica_expresion()
+}
+
+void testing_expresion(): {} {
+
+	(<integer_literal> | <identifier>) (<operador_relacional>) (<integer_literal> | <identifier>) 
+}
+void aritmetica_expresion(): {} {
+
+	< corchetes_abren ><identifier> < asignador> <integer_literal> <operador_aritmetico > <integer_literal><puntoYComa>< corchetes_cierran > 
+}
