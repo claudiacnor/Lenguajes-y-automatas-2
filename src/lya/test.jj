@@ -1,0 +1,185 @@
+options
+{
+  	LOOKAHEAD = 2;
+	FORCE_LA_CHECK = true;
+}
+
+PARSER_BEGIN(test)
+	package MyAnalizador;
+	import java.util.*;
+	public class test{ 
+		static class Identifier{
+			String name;
+			String type;
+			String description;
+			String data;
+
+			public Identifier(String name, String type, String data, String description){
+				this.name = name;
+				this.type = type;
+				this.description = description;
+				this.data = data;
+			}
+
+			public Identifier(String name, String description){
+				this.name = name;
+				type = "";
+				this.description = description;
+				data = "";
+			}
+			public String toString(){
+				return String.format("%-10s %-10s %-10s %-10s", data,name,type ,description);
+			}
+		}
+		static String data="";
+		static String error="";
+		static List <Identifier> symbols = new ArrayList <Identifier>();
+		public static void main(String[] args)throws ParseException{
+			try{
+				test analizador = new test(System.in);
+				analizador.Programa();
+				if(error.equals(""))
+					System.out.println("Exito, codigo correcto.");
+				else{
+					System.out.println("Error, algo anda mal: ");
+					System.out.println(error);
+				}
+				System.out.println("Identificadores encontrados: ");
+				for(Identifier i : symbols){
+					System.out.println(i.toString());
+				}
+			}catch(ParseException e){
+				System.out.println(e.getMessage());
+				System.out.println("Error!!!!");
+			}
+		}
+	}
+PARSER_END(test)
+//Omitidos.
+SKIP:
+{
+	" "
+	|"\r"
+	|"\n"
+	|"\t"
+}
+
+//Palabras reservadas.
+TOKEN:
+{
+	<class_word : "class" >
+|	<modifier : "public" | "private" >
+| 	<type_specifier : "boolean" | "int" >
+| 	<boolean_literal : "true" | "false" >
+| 	<if_declaration : "if" >
+|   <while_declaration : "while" > 
+}
+ 
+//Simbolos de expresiones.
+TOKEN:
+{
+	<relational_operator : ">"|"<"|">="|"<="|"=="|"!=">
+| 	<aritmetic_operator : "+"|"-">
+}
+
+//Caracteres diversos.
+TOKEN:
+{
+   	<open_key : "{">
+| 	<close_key : "}">
+| 	<open_parenthesis : "(">
+| 	<close_parenthesis : ")">
+| 	<semicolon : ";">
+| 	<equals : "=">
+| 	<integer_literal : (["1"-"9"](["1"-"9"])*)|"0">
+| 	<identifier : (["A"-"Z","a"-"z","_"])+>
+}
+
+//llamar al metodo, empieza la gramatica.
+void Programa(): {}
+{
+	class_declaration() 
+}
+
+void class_declaration(): {}{
+ 	try { 
+		<modifier> <class_word> class_identifier()
+		<open_key> field_declaration() statement() <close_key>
+	}
+	catch(ParseException e){
+	    error += "Error Léxico: \t"+e.getMessage()+"\n";
+	}catch(TokenMgrError e){
+		error += "Error Sintactico: \t"+e.getMessage()+"\n";
+	}
+}
+
+void class_identifier():{}{
+	<identifier> {
+		symbols.add(new Identifier(token.image,"Clase"));
+	}
+}
+
+void field_declaration(): {}{
+	variable_declaration()
+}
+
+void variable_declaration():{}{
+	<modifier> data = type() variable_declarator() <semicolon>
+}
+
+String type(): {}{
+	<type_specifier>{
+		return token.image;
+	}
+}
+
+void variable_declarator(): {
+	String identifier;
+	String type;
+	Identifier ident;
+  }{
+	identifier = variable_identifier() <equals> type = variable_type()
+	{
+		ident = new Identifier (identifier, type, data, "Variable");
+		symbols.add(ident);  
+	}
+}
+
+String variable_identifier(): { } {
+	<identifier> {
+		return token.image;
+	}
+}
+
+String variable_type(): {} {
+	(<integer_literal> | <boolean_literal>){
+		return token.image;
+	}
+}
+
+void if_statement(): {}{
+	<if_declaration> <open_parenthesis> expression() <close_parenthesis> statement_block()
+}
+
+void expression(): {}{
+	testing_expression()
+}
+
+void testing_expression(): {}{
+	(<integer_literal>|<identifier>) <relational_operator> (<integer_literal>|<identifier>)
+}
+
+void statement (): {}{
+	variable_declaration() |if_statement() |while_statement()
+}
+
+void while_statement(): {} {
+  <while_declaration> <open_parenthesis> expression() <close_parenthesis> statement_block()
+}
+
+void statement_block(): {}{
+	<open_key> aritmetic_expression() <close_key> 
+}
+void aritmetic_expression(): {}{
+	<identifier> <equals> <integer_literal> <aritmetic_operator> <integer_literal> <semicolon>
+}
