@@ -1,8 +1,5 @@
 package lya;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -15,30 +12,18 @@ public class AnalisisSemantico {
 	 * private ArrayList<String> listaErroresSemanticos; private ArrayList<String>
 
 	 */
-	public AnalisisSemantico(String URL) {
-		String codigo = LeeArchivo(URL);
+	public static void main(String[] args) {
+		String codigo = "public class m {\n" + " public int y=0; \n" + " public boolean x=false; \n" + " private int z; "
+				+ "  int w=10; " + " if(y>9){\n" + "  x=false|true;\n" + " }\n" + " }\n" + "";
+		AnalisisSemantico as = new AnalisisSemantico(codigo);
+	}
+
+	public AnalisisSemantico(String codigo) {
 		recorreCodigo(codigo);
 		LlenaTabla();
 		for(String error: listaErroresSemanticos) {
 			System.out.println(error);
 		}
-	}
-	public static String LeeArchivo(String URL) {
-		String parrafo = "", texto = "";
-		try {
-			FileReader archivo = new FileReader(URL); 
-			BufferedReader leeLinea = new BufferedReader(archivo); 
-			parrafo = leeLinea.readLine(); 
-			while (parrafo != null) { 
-				texto += parrafo + "\n";
-				parrafo = leeLinea.readLine();
-			}
-		} catch (FileNotFoundException exception) { 
-			System.out.println(exception);
-		} catch (Exception exception) {
-			System.out.println(exception);
-		}
-		return texto;
 	}
 	public void recorreCodigo(String codigo) {
 		String parrafo = "";
