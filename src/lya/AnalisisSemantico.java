@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import lya.TablaSimbolos;
 
 public class AnalisisSemantico {
 	ArrayList<String> linea = new ArrayList<String>();
