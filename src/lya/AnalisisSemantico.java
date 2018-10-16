@@ -13,8 +13,8 @@ public class AnalisisSemantico {
 
 	 */
 	public static void main(String[] args) {
-		String codigo = "public class m {\n" + " public int y=0; \n" + " public boolean f=maybe; \n" + " private int z; "
-				+ "  int w=10; " + " if(y>9){\n" + "  x=8+9;\n" + " }\n" + " }\n" + "";
+		String codigo = "public class m {\n" + " public int y=0; \n" + " public boolean x=false; \n" + " private int z; "
+				+ "  int w=10; " + " if(y>9){\n" + "  x=false|true;\n" + " }\n" + " }\n" + "";
 		AnalisisSemantico as = new AnalisisSemantico(codigo);
 	}
 
@@ -116,41 +116,81 @@ public class AnalisisSemantico {
 	}
 
 	public void Operaciones(String parrafo, int pos) {
-/*		String parrafoAux = "", variable = "", operandoAux="";
-		
+		String parrafoAux = "", variable = "", operandoAux="";
+		boolean variableEncontrada=false;
 		// Variables usadas y no defindas
 		// Se recorre el parrafo para obtener la variable de la operaci�n
 		for (int j = 0; j < parrafo.length(); j++) {
-			if (parrafo.charAt(j) == '=' && parrafo.charAt(j+1)!= '=') {
+			if (!variableEncontrada && parrafo.charAt(j) == '=' && (parrafo.charAt(j+1)!= '=') ) {//Encontramos la variable, lo que sigue es la operacion
 				variable = parrafoAux;
 				parrafoAux= "";
+				variableEncontrada=true;
 				if (!tablaSimbolos.containsKey(variable)) {
 					listaErroresSemanticos
 							.add("La variable " + "'" + variable + "' en la posici�n " + pos + " no ha sido definida.");
 				break;
 				}
 			} else { //se eliminan los espacios en blanco
-				if (!Character.isWhitespace(parrafo.charAt(j))) {
+				
+				if(Character.isWhitespace(parrafo.charAt(j)))
+					continue;
+				if (!Character.isWhitespace(parrafo.charAt(j)) && (!esOperador(parrafo.charAt(j)+"")&& !esOperador(parrafoAux))) {
 					parrafoAux += Character.toString(parrafo.charAt(j));
+					
 				}else {
 					//Verificamos si es una variable
-					if(tablaSimbolos.containsKey(parrafoAux)) {//Es variable
+					if(tablaSimbolos.containsKey(parrafoAux)) { //Es variable
 						if(!tablaSimbolos.get(parrafoAux).getTipoDato().equals(tablaSimbolos.get(variable).getTipoDato())) {
 							listaErroresSemanticos.add("Tipo de operacion incorrecta variable "+ variable +" Tipo ("+tablaSimbolos.get(variable).getTipoDato()+
 									") con variable "+ parrafoAux + " Tipo ( "+tablaSimbolos.get(parrafoAux)+")");
 							break;
 						}
 					}else {//Es operando u constante
-						if(verificarTipoConOperando (tablaSimbolos.get(variable), parrafoAux)) {//Es un operador
-							
-						}else {
-							
+						if(esOperador(parrafoAux)) {//Es un operador
+							if(!verificarTipoConOperando(tablaSimbolos.get(variable).getTipoDato(), parrafoAux)) {//No es un tipo de operador correco
+								listaErroresSemanticos.add("Tipo de operacion incorrecta variable "+ variable +" Tipo ("+tablaSimbolos.get(variable).getTipoDato()+
+										") con operador "+ parrafoAux);
+								break;
+							}
+						}else {//Es una constante
+							if(!verificaTipoConValor(tablaSimbolos.get(variable).getTipoDato(), parrafoAux)) {
+								listaErroresSemanticos.add("Tipo de operacion incorrecta variable "+ variable +" Tipo ("+tablaSimbolos.get(variable).getTipoDato()+
+										") con "+ parrafoAux);
+								break;
+							}
 						}
 					}
 					parrafoAux="";
+					if(parrafoAux.length()==0) {//verificamos si necesitamos meter el operador
+						parrafoAux+=parrafo.charAt(j);
+					}
 				}
 			}
-		}*/
+		}
+		if(parrafoAux.length()>0) {//Quedo algo en los operandos/operadores
+			//Verificamos si es una variable
+			if(tablaSimbolos.containsKey(parrafoAux)) { //Es variable
+				if(!tablaSimbolos.get(parrafoAux).getTipoDato().equals(tablaSimbolos.get(variable).getTipoDato())) {
+					listaErroresSemanticos.add("Tipo de operacion incorrecta variable "+ variable +" Tipo ("+tablaSimbolos.get(variable).getTipoDato()+
+							") con variable "+ parrafoAux + " Tipo ( "+tablaSimbolos.get(parrafoAux)+")");
+				}
+			}else {//Es operando u constante
+				if(esOperador(parrafoAux)) {//Es un operador
+					if(!verificarTipoConOperando(tablaSimbolos.get(variable).getTipoDato(), parrafoAux)) {//No es un tipo de operador correco
+						listaErroresSemanticos.add("Tipo de operacion incorrecta variable "+ variable +" Tipo ("+tablaSimbolos.get(variable).getTipoDato()+
+								") con operador "+ parrafoAux);
+					}
+				}else {//Es una constante
+					if(!verificaTipoConValor(tablaSimbolos.get(variable).getTipoDato(), parrafoAux)) {
+						listaErroresSemanticos.add("Tipo de operacion incorrecta variable "+ variable +" Tipo ("+tablaSimbolos.get(variable).getTipoDato()+
+								") con "+ parrafoAux);
+					}
+				}
+			}
+			parrafoAux="";
+
+		
+		}
 	}
 	
 	public boolean verificarTipoConOperando(String tipo, String operando) {
@@ -158,8 +198,12 @@ public class AnalisisSemantico {
 			case "int":
 				return (operando.equals("+") || operando.equals("*") || operando.equals("/") || operando.equals("-"));
 			case "boolean":
-				return (operando.equals("&&") || operando.equals("|") || operando.equals("||") || operando.equals("!=")|| operando.equals("=="));
+				return (operando.equals("&") ||operando.equals("&&") || operando.equals("|") || operando.equals("||") || operando.equals("!=")|| operando.equals("=="));
 		}
 		return false;
+	}
+	
+	public boolean esOperador(String operador) {
+		return (operador.equals("+") || operador.equals("*") || operador.equals("/") || operador.equals("-")) || (operador.equals("&") || (operador.equals("&&") || operador.equals("|") || operador.equals("||") || operador.equals("!=")|| operador.equals("==")));
 	}
 }
