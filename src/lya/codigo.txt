@@ -1,0 +1,8 @@
+public class m {
+ public int y=0; 
+ public String y=10;
+ private int z;
+ if(y>9){
+  x=8+9;
+ }
+ }
