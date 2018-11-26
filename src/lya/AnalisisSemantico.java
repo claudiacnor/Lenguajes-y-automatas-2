@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.StringTokenizer;
+
 import lya.TablaSimbolos;
 
 public class AnalisisSemantico {
@@ -13,15 +15,17 @@ public class AnalisisSemantico {
 	private ArrayList<String> listaErroresSemanticos = new ArrayList<String>();
 	private ArrayList<String> operadoreslogicos = new ArrayList<>(), operadoresaritmeticos = new ArrayList<>();
 	private ArrayList<String> variables = new ArrayList<>();
+	private ArrayList<String> operaciones= new ArrayList<String>();
+	private ArrayList<String> t= new ArrayList<String>();
 
-	/*
-	 * private ArrayList<String> listaErroresSemanticos; private ArrayList<String>
-	 * 
-	 */
 	public AnalisisSemantico(String URL) {
 		String codigo = LeeArchivo(URL);
 		recorreCodigo(codigo);
 		LlenaTabla();
+		if(listaErroresSemanticos.isEmpty()) 
+		{
+			triplos(); //si no hay errores semanticos procedemos a hacer los triplos
+		}
 		for (String error : listaErroresSemanticos) {
 			System.out.println(error);
 		}
@@ -29,6 +33,14 @@ public class AnalisisSemantico {
 		System.out.println("Variable\t" + "Tipo de dato\t" + "Valor\t" + "Posición\t" + "Alcance\t");
 		imprimeTabla();
 		System.out.println();
+	}
+
+	public void triplos() { //Generación de triplos
+		String operacion;
+		for(int i=0; i<operaciones.size();i++) {
+			operacion =operaciones.get(i).replaceAll("\\s", ""); //quitamos espacios en blanco
+				System.out.println("operación: "+operacion);
+			}
 	}
 
 	public static String LeeArchivo(String URL) {
@@ -59,7 +71,6 @@ public class AnalisisSemantico {
 				parrafo += Character.toString(codigo.charAt(i));
 		}
 	}
-
 	public void LlenaTabla() {
 		String parrafo;
 		CharSequence sInt = "int", sIgual = "=";
@@ -76,6 +87,15 @@ public class AnalisisSemantico {
 				AgregaVariable(parrafo, sBool, i + 1);
 			} else {
 				if (parrafo.contains(sIgual)) {
+					/* Si contiene igual y algun operador entonces es una operacion*/
+					if(parrafo.contains("+")||parrafo.contains("-")||parrafo.contains("/")||parrafo.contains("+"))
+						operaciones.add(parrafo);
+					//Si contiene parentesis los omitimos, ya que estos solo los ocupamos en las operaciones
+					if(parrafo.contains("(") && parrafo.contains(")"))
+					{	
+						parrafo=parrafo.replaceAll("\\(","");
+						parrafo=parrafo.replaceAll("\\)","");
+					}
 					Operaciones(parrafo, i + 1);
 				}
 			}
@@ -85,7 +105,7 @@ public class AnalisisSemantico {
 	public void AgregaVariable(String parrafo, CharSequence Tipo, int pos) {
 		String parrafoAux = "", variable = "", valor = "";
 		CharSequence sIgual = "=", sPublic = "public", sPrivate = "private";
-		// Llenado de la declaraciï¿½n de las variables
+		// Llenado de la declaración de las variables
 		if (parrafo.contains(Tipo)) {
 			for (int j = 0; j < parrafo.length(); j++) {
 				if (parrafoAux.contains(Tipo)) {
@@ -149,16 +169,13 @@ public class AnalisisSemantico {
 		// Variables usadas y no defindas
 		// Se recorre el parrafo para obtener la variable de la operaciï¿½n
 		for (int j = 0; j < parrafo.length(); j++) {
-			if (!variableEncontrada && parrafo.charAt(j) == '=' && (parrafo.charAt(j + 1) != '=')) {// Encontramos la
-																									// variable, lo que
-																									// sigue es la
-																									// operacion
+			if (!variableEncontrada && parrafo.charAt(j) == '=' && (parrafo.charAt(j + 1) != '=')) {// Encontramos lavariable, lo que sigue es la operacion
 				variable = parrafoAux;
 				parrafoAux = "";
 				variableEncontrada = true;
 				if (!tablaSimbolos.containsKey(variable)) {
 					listaErroresSemanticos.add(
-							"La variable " + "'" + variable + "' en la posiciï¿½n " + pos + " no ha sido definida.");
+							"La variable " + "'" + variable + "' en la posición " + pos + " no ha sido definida.");
 					break;
 				}
 			} else { // se eliminan los espacios en blanco
@@ -181,13 +198,7 @@ public class AnalisisSemantico {
 						}
 					} else {// Es operando u constante
 						if (esOperador(parrafoAux)) {// Es un operador
-							if (!verificarTipoConOperando(tablaSimbolos.get(variable).getTipoDato(), parrafoAux)) {// No
-																													// es
-																													// un
-																													// tipo
-																													// de
-																													// operador
-																													// correco
+							if (!verificarTipoConOperando(tablaSimbolos.get(variable).getTipoDato(), parrafoAux)) {// No es un tipo de operador correco
 								listaErroresSemanticos.add("Tipo de operacion incorrecta variable " + variable
 										+ " Tipo (" + tablaSimbolos.get(variable).getTipoDato() + ") con operador "
 										+ parrafoAux);
@@ -195,8 +206,7 @@ public class AnalisisSemantico {
 							}
 						} else {// Es una constante
 							if (!verificaTipoConValor(tablaSimbolos.get(variable).getTipoDato(), parrafoAux)) {
-								listaErroresSemanticos
-										.add("Tipo de operacion incorrecta variable " + variable + " Tipo ("
+								listaErroresSemanticos.add("Tipo de operacion incorrecta variable " + variable + " Tipo ("
 												+ tablaSimbolos.get(variable).getTipoDato() + ") con " + parrafoAux);
 								break;
 							}
@@ -219,10 +229,7 @@ public class AnalisisSemantico {
 				}
 			} else {// Es operando u constante
 				if (esOperador(parrafoAux)) {// Es un operador
-					if (!verificarTipoConOperando(tablaSimbolos.get(variable).getTipoDato(), parrafoAux)) {// No es un
-																											// tipo de
-																											// operador
-																											// correco
+					if (!verificarTipoConOperando(tablaSimbolos.get(variable).getTipoDato(), parrafoAux)) {// No es un tipo de operador correco
 						listaErroresSemanticos.add("Tipo de operacion incorrecta variable " + variable + " Tipo ("
 								+ tablaSimbolos.get(variable).getTipoDato() + ") con operador " + parrafoAux);
 					}
