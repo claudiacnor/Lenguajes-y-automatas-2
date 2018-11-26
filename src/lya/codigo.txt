@@ -1,8 +1,11 @@
 public class m {
- public int y=0; 
- public boolean x=true;
- private int z;
+public int y=0;
+public int r=0;
+r=true;
+public boolean x=true;
+}
  if(y>9){
-  x=true|false;
+  x=1+2;
  }
- }
+ public int y=2;
+}
