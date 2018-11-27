@@ -17,6 +17,7 @@ public class AnalisisSemantico {
 	private ArrayList<String> variables = new ArrayList<>();
 	private ArrayList<String> operaciones = new ArrayList<String>();
 	private ArrayList<Triplo> t = new ArrayList<Triplo>();
+	char inicial;
 
 	public AnalisisSemantico(String URL) {
 		String codigo = LeeArchivo(URL);
@@ -24,10 +25,11 @@ public class AnalisisSemantico {
 		LlenaTabla();
 		if (listaErroresSemanticos.isEmpty()) {
 			triplos(); // si no hay errores semanticos procedemos a hacer los triplos
-			System.out.println("Triplos= "+ t.get(0).getNum());
-			System.out.println("Triplos= "+ t.get(1).getNum());
-			System.out.println("Triplos= "+ t.get(2).getNum());
 		}
+		for(int i=0;i<t.size();i++) {
+			System.out.println(t.get(i).getNum() + " = " + t.get(i).getOp());
+		}
+		System.out.println(inicial+"="+t.get(t.size()-1).getNum());
 		for (String error : listaErroresSemanticos) {
 			System.out.println(error);
 		}
@@ -39,17 +41,22 @@ public class AnalisisSemantico {
 
 	public void triplos() { // Generación de triplos
 		String operacion, operacionAux;
-		char operador1, operador2;
-		int pos = 0, cont=1;
+		int pos = 0, cont = 1;
 		String triplo = "";
 		for (int i = 0; i < operaciones.size(); i++) {
 			operacion = operaciones.get(i).replaceAll("\\s", ""); // quitamos espacios en blanco
 			operacionAux = quitaIgual(operacion);
 			System.out.println("operación: " + operacion);
 			while (!operacionAux.isEmpty()) {
-				System.out.println("operacionAux="+operacionAux);
+				//verificamos si contiene un numero negativo
+				if((operacionAux.contains("-")) && esOperador(operacionAux.charAt(operacionAux.indexOf("-") - 1))) {
+							pos=operacionAux.indexOf("-");
+							t.add(new Triplo("T"+cont,Character.toString(operacionAux.charAt(pos))+Character.toString(operacionAux.charAt(pos+1))));
+							operacionAux = operacionAux.replace(Character.toString(operacionAux.charAt(pos))+Character.toString(operacionAux.charAt(pos+1)), "");
+							cont++;
+				}
+				// Agregamos primero lo que se encuentra en parentesis
 				if (operacionAux.contains("(")) {
-
 					pos = operacionAux.indexOf("(") + 1;
 					while (operacionAux.charAt(pos) != ')') {
 						triplo = triplo + operacionAux.charAt(pos);
@@ -57,65 +64,75 @@ public class AnalisisSemantico {
 					}
 					operacionAux = operacionAux.replace("(", "");
 					operacionAux = operacionAux.replace(")", "");
-					t.add(new Triplo("T"+cont,triplo));
+					t.add(new Triplo("T" + cont, triplo));
 					cont++;
 					operacionAux = operacionAux.replace(triplo, "");
-				}
-				else
-				{
-					
-					if(!esOperador(operacionAux.charAt(operacionAux.length()-1)))
-					{
-						triplo=Character.toString(operacionAux.charAt(operacionAux.length()-1));
-						t.add(new Triplo("T"+cont,triplo));
-						operacionAux=operacionAux.replace(triplo, ""); 
-						cont++;
-					}
-					else
-					{
-						if(esOperador(operacionAux.charAt(operacionAux.length()-2))&& operacionAux.length()>3 ) {
-							triplo=t.get(cont-2).getNum()+operacionAux.charAt(operacionAux.length()-1)+t.get(cont-1).getNum();
-							t.add(new Triplo("T"+cont,triplo));
-							operacionAux=operacionAux.replace(Character.toString(operacionAux.charAt(operacionAux.length()-1)), "");
+				} else {
+					// cuando la longitud es de 1, se realiza la operacion con los dos ultimos
+					// triplos
+					if (operacionAux.length() == 1) {
+						triplo = t.get(cont-3).getNum() + operacionAux.charAt(0) + t.get(cont-2).getNum();
+						t.add(new Triplo("T" + cont, triplo));
+						operacionAux = operacionAux.replace(Character.toString(operacionAux.charAt(0)), "");
+					} else {
+						// Cuando la longitud es 2, se realiza la operacion con el operando y el ultimo
+						// triplo
+						if (operacionAux.length() == 2) {
+							System.out.println(cont);
+							triplo = Character.toString(operacionAux.charAt(0)) + Character.toString(operacionAux.charAt(1)) + t.get(cont - 2).getNum();
+							t.add(new Triplo("T" + cont, triplo));
+							operacionAux = operacionAux.replace(Character.toString(operacionAux.charAt(0))
+									+ Character.toString(operacionAux.charAt(1)), "");
 							cont++;
-						}
-						else {
-							if(operacionAux.length()==1)
-							{	
-								triplo=t.get(cont-1).getNum()+operacionAux.charAt(0)+t.get(cont-2).getNum();
-								t.add(new Triplo("T"+cont, triplo));
-								operacionAux=operacionAux.replace(Character.toString(operacionAux.charAt(0)), "");
-							}else {
-								if(operacionAux.length()==2)
-								{
-									triplo=operacionAux.charAt(0)+operacionAux.charAt(1)+t.get(cont-1).getNum();
-									t.add(new Triplo("T"+cont, triplo));
-									operacionAux=operacionAux.replace(Character.toString(operacionAux.charAt(0))+Character.toString(operacionAux.charAt(1)), "");
+						} else {
+							// Si es un operando se hace un triplo
+							if (!esOperador(operacionAux.charAt(operacionAux.length() - 1))) {
+								triplo = Character.toString(operacionAux.charAt(operacionAux.length() - 1));
+								t.add(new Triplo("T" + cont, triplo));
+								operacionAux = operacionAux.replace(triplo, "");
+								cont++;
+							} else {
+								// Si es un operador y su antecesor es un operador se realiza la operacion con
+								// los dos ultimos triplos
+								if (esOperador(operacionAux.charAt(operacionAux.length() - 2))) {
+									triplo = t.get(cont - 3).getNum() + Character.toString(operacionAux.charAt(operacionAux.length() - 1))
+											+ t.get(cont - 2).getNum();
+									t.add(new Triplo("T" + cont, triplo));
+									operacionAux = operacionAux.substring(0, operacionAux.length() - 1);
+									/*operacionAux = operacionAux.replace(
+											Character.toString(operacionAux.charAt(operacionAux.length() - 1)), "");*/
 									cont++;
+								} else {
+									// Si es un operando entonces se agrega un nuevo triplo
+									if (!esOperador(operacionAux.charAt(operacionAux.length() - 2))) {
+										triplo = Character.toString(operacionAux.charAt(0))
+												+ Character.toString(operacionAux.charAt(1))
+												+ Character.toString(operacionAux.charAt(2));
+										t.add(new Triplo("T" + cont, triplo));
+										operacionAux = operacionAux.replace(triplo, "");
+										cont++;
+									}
 								}
-								else {
-									triplo=Character.toString(operacionAux.charAt(0))+Character.toString(operacionAux.charAt(1))+Character.toString(operacionAux.charAt(2));
-									t.add(new Triplo("T"+cont, triplo));
-									operacionAux=operacionAux.replace(triplo, "");
-									cont++;
-								}
+
 							}
-								
+
 						}
 					}
 				}
 			}
 
-			
 		}
 	}
+
 	String quitaIgual(String operacion) {
 		int indice;
-		indice=operacion.indexOf("=");
-		operacion=operacion.replace(Character.toString(operacion.charAt(indice-1)), "");
-		operacion=operacion.replace("=", "");
+		indice = operacion.indexOf("=");
+		inicial= operacion.charAt(indice-1);
+		operacion = operacion.replace(Character.toString(operacion.charAt(indice - 1)), "");
+		operacion = operacion.replace("=", "");
 		return operacion;
 	}
+
 	boolean esOperador(char c) {
 		if (c == '+' || c == '-' || c == '*' || c == '/')
 			return true;

@@ -3,7 +3,7 @@ public int y=0;
 public int r=0;
 
  if(y>9){
-  y=1+2+(3*6);
+  y=3*2+(7+8)*-9;
 
  }
 }
